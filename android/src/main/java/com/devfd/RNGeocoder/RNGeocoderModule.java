@@ -2,6 +2,7 @@ package com.devfd.RNGeocoder;
 
 import android.location.Address;
 import android.location.Geocoder;
+import android.os.AsyncTask;
 
 import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
@@ -48,19 +49,34 @@ public class RNGeocoderModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void geocodePosition(ReadableMap position, Promise promise) {
+    public void geocodePosition(final ReadableMap position, final Promise promise) {
         if (!geocoder.isPresent()) {
             promise.reject("NOT_AVAILABLE", "Geocoder not available for this platform");
             return;
         }
 
-        try {
-            List<Address> addresses = geocoder.getFromLocation(position.getDouble("lat"), position.getDouble("lng"), 20);
-            promise.resolve(transform(addresses));
-        }
-        catch (IOException e) {
-            promise.reject(e);
-        }
+
+            new AsyncTask<Void,Void,Void>(){
+                List<Address> addresses;
+
+                @Override
+                protected Void doInBackground(Void... voids) {
+                    try {
+                        addresses = geocoder.getFromLocation(position.getDouble("lat"), position.getDouble("lng"), 20);
+                    } catch (Exception e){
+                        promise.reject(e);
+                    }
+
+                    return null;
+                }
+
+                @Override
+                protected void onPostExecute(Void aVoid) {
+                    super.onPostExecute(aVoid);
+                    promise.resolve(transform(addresses));
+                }
+            }.execute();
+
     }
 
     WritableArray transform(List<Address> addresses) {
